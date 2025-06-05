@@ -1,25 +1,25 @@
-# Create Evidence inside Servicenow and upload them into Artifactory
+# Create Evidence inside ServiceNow and upload it into Artifactory
 ServiceNow offers multiple processes in which a user would benefit from creating a JFrog evidence. 
-For example, following a release approval step, i.e., approval to promotion a release bundle or a package, approval to deploy a new version or to distribute a release version.
+For example, following a release approval step, i.e., approval to promote a release bundle or a package, approval to deploy a new version or to distribute a release version.
 
-These approval flows, being completed on servicenow, trigger operations inside JFrog, but without generating the evidence on servicenow, the release operations may not be backtracked for compliance or verified by automated controls.
+These approval flows, being completed on ServiceNow, trigger operations inside JFrog, but without generating the evidence on ServiceNow, the release operations may not be backtracked for compliance or verified by automated controls.
 
-This example demonstrates how to create evidence in servicenow and upload them into Artifactory.
+This example demonstrates how to create evidence in ServiceNow and upload them into Artifactory.
 
-Fow integrating servicenow with JFrog, we will add few servicenow components that can then be used as building blocks in any servicenow process that required a JFrog evidence. 
+For integrating ServiceNow with JFrog, we will add a few ServiceNow components that can then be used as building blocks in any ServiceNow process that requires JFrog evidence. 
 
 Notice, throughout the example scripts referencing the added components will use the x_1560608_jfrog_1 app id which should be replaced with your own app id. 
 
-## Example of a servicenow business rule 
-The business rule in this example is planned to be triggered following a servicenow change request approval for a promotion request.
-The script promotes a release bundle and creates an evidence of the promotion approval.
+## Example of a ServiceNow business rule 
+The business rule in this example is planned to be triggered following a ServiceNow change request approval for a promotion request.
+The script promotes a release bundle and creates evidence of the promotion approval.
 
 business rule script example is on [jfrog_promotion](jfrog_promotion) 
-Notice this script requires the below mandatory and optional servicenow entities created.
+Notice this script requires the below mandatory and optional ServiceNow entities to be created.
 Notice that a few elements were not added here, for example, the notification and the event registry (eventQueue) that handle the business rules failures (as these are async and so cannot be handled through the UI).
 While for other scenarios you might only need to create the mandatory components that perform evidence creation, signing and uploading, this business rule script performs a full process of promotion and evidence creation and so requires also few optional elements.
 
-## Mandatory Servicenow components required for the integration:
+## Mandatory ServiceNow components required for the integration:
 ### 1. Script includes:
 - **CryptoJS**: see [CryptoJS](CryptoJS) adds Cryptographic functions to servicenow, based on https://github.com/kjur/jsrsasign (MIT License).
 - **JFrogEvidenceOperations**: see [JFrogEvidenceOperations](JFrogEvidenceOperations) which uses the CryptoJS for signing operations and adds few other evidence related utilities such as base64 handling and evidence creation. the main function is Create_evidence function.
@@ -29,7 +29,7 @@ While for other scenarios you might only need to create the mandatory components
     - jfrog_keyid: optional, the JFrog name of the public key that was uploaded to jfrog, if missing JFRog signature verification will not be performed  
     - jfrog_bearer: JFrog bearer token
     - evidence_subject: the digest of the evidence subject, this may be the digest of a release bundle, a package, a buildinfo or any other JFrog artifact that the evidence is related to. 
-    - evidence_payload: predicate of the evidence, it is advised to create a system proprty with a evidence templates that can be used for generating this content.
+    - evidence_payload: predicate of the evidence, it is advised to create a system property with evidence templates that can be used for generating this content.
   - result json:
     ```json
     {
@@ -40,7 +40,7 @@ While for other scenarios you might only need to create the mandatory components
     ```
 -  
 
-### 2. Outbound Integrations > Rest Msssages
+### 2. Outbound Integrations > Rest Messages
 - **JFrog_evidence**: an outbound rest api for posting evidence to JFrog.
   - **Rest message Endpoint**: `https://$jfrog_platform_url.jfrog.io`
   - **HTTP Method**: create_evidence
@@ -60,7 +60,7 @@ While for other scenarios you might only need to create the mandatory components
     ```
     
 
-## Optiopnal Servicenow components required for the integration:
+## Optional ServiceNow components required for the integration:
 ### 1. Script includes:
 - **JFrogReleaseOperations** see [JFrogReleaseOperations](JFrogReleaseOperations) provides functions for getting a release bundle digest and for promoting a release bundle.
 ### 2. Outbound Integrations > Rest Msssages
