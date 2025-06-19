@@ -46,21 +46,25 @@ jobs:
           quiet: true
           wait-on: 'http://localhost:3000/app.html'
           wait-on-timeout: 120
+          working-directory: examples/cypress-test-reports-example
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         continue-on-error: true
       - name: Merge Cypress results
         run: npm run merge-results
+        working-directory: examples/cypress-test-reports-example
 
       # This is an optional step to generate a markdown report
       - name: Generate optional markdown report
         if: env.ATTACH_OPTIONAL_MARKDOWN_TO_EVIDENCE == 'true'
         run: npm run generate:md
+        working-directory: examples/cypress-test-reports-example
         env:
           IMAGE_REF: ${{ env.REGISTRY_URL }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}
 
       #Steps to attach evidence to the package
       - name: Attach evidence to the package
+        working-directory: examples/cypress-test-reports-example
         run: |
           jf evd create \
           --package-name $IMAGE_NAME \
