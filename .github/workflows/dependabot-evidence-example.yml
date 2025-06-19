@@ -1,4 +1,4 @@
-name: dependabot-evidence-example
+name: "Dependabot evidence integration example"
 on:
   workflow_dispatch:
 
@@ -14,50 +14,28 @@ jobs:
       IMAGE_NAME: 'dependabot-docker-image'
       BUILD_NAME: 'dependabot-evidence-eg'
       VERSION: ${{ github.run_number }}
-      REGISTRY_DOMAIN: ${{ vars.REGISTRY_DOMAIN }}
+      REGISTRY_DOMAIN: ${{ vars.JF_URL }}
+      ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE: true
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup JFrog CLI
+      # Build and publish the packages to JFrog Artifactory
+      - name: Setup jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-        
-      - name: Log in to Artifactory Docker Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.ARTIFACTORY_URL }}
-          username: ${{ secrets.JF_USER }}
-          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Build and Push Docker Image to Artifactory
         run: |
           docker build -f ./examples/dependabot-alerts-example/Dockerfile . --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
           jf rt docker-push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION $REPO_NAME --build-name=$BUILD_NAME --build-number=$VERSION
 
-      - name: Get Artifact Details
-        run: |
-          ARTIFACT_NAME="$REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION"
-          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
-
-          IMAGE_ID=$(docker images --format "{{.ID}}" "$ARTIFACT_NAME")
-          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
-
-          IMAGE_SIZE=$(docker images --format "{{.Size}}" "$ARTIFACT_NAME" | sed 's/MB//' | awk '{print $1 * 1024 * 1024}')
-          echo "IMAGE_SIZE=$IMAGE_SIZE" >> $GITHUB_ENV
-
-          echo "SCAN_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"" >> $GITHUB_ENV
-
+      # Fetch Dependabot Vulnerability Snapshot
+      # Github token with 'security_events: read' permission has to be provided
       - name: Fetch Dependabot Vulnerability Snapshot
-        id: dependabot_snapshot
         env: 
-          GH_TOKEN: ${{ secrets.TOKEN_GIT }}    # GitHub Token with 'security_events: read' permission is required
+          GH_TOKEN: ${{ secrets.GH_PAT }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
         run: |
@@ -76,27 +54,33 @@ jobs:
                 detectedAt: .created_at
               }
             ]' > result.json
-
           jq -n --argjson data "$(cat result.json)" '{ data: $data }' > dependabot.json
 
-      - name: Generate and Save Dependabot Markdown Report
+      # This is an optional step to generate a custom markdown report
+      - name: Generate optional custom markdown report
+        if: env.ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE == 'true'
         run: |
+          ARTIFACT_NAME="$REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION"
+          IMAGE_ID=$(docker images --format "{{.ID}}" "$ARTIFACT_NAME")
+          IMAGE_SIZE=$(docker images --format "{{.Size}}" "$ARTIFACT_NAME" | sed 's/MB//' | awk '{print $1 * 1024 * 1024}')
+          SCAN_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           python ./examples/dependabot-alerts-example/markdown_helper.py \
             "dependabot.json" \
             "dependabot_report.md" \
-            "$ARTIFACT_NAME" \
+            "$REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION" \
             "$SCAN_DATE" \
             "$IMAGE_ID" \
             "$IMAGE_SIZE"
 
-      - name: Create Dependabot Evidence
+      # Attaching the evidence to associated package
+      - name: Attach Evidence using JFrog CLI
         run: |
           jf evd create \
             --package-name $IMAGE_NAME \
             --package-version $VERSION \
             --package-repo-name $REPO_NAME \
-            --key "${{ secrets.TEST_PRVT_KEY }}" \
-            --key-alias ${{ vars.TEST_PUB_KEY_ALIAS }} \
+            --key "${{ secrets.PRIVATE_KEY }}" \
+            --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" \
             --predicate ./dependabot.json \
             --predicate-type http://Github.com/Dependabot/static-analysis \
-            --markdown dependabot_report.md
+            ${{ env.ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE == 'true' && '--markdown "dependabot_report.md"' || '' }}
