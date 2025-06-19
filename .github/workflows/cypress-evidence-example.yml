@@ -1,4 +1,4 @@
-name: cypress-evidence-example
+name: "Cypress evidence integration example"
 on:
   workflow_dispatch:
 permissions:
@@ -16,7 +16,7 @@ jobs:
       BUILD_NAME: 'cypress-docker-build'
       BUILD_NUMBER: ${{ github.run_number }}
       ATTACH_OPTIONAL_MARKDOWN_TO_EVIDENCE: true
-      UPLOAD_CYPRESS_REPORT_TO_CLOUD: true
+      UPLOAD_CYPRESS_REPORT_TO_CLOUD: false
     steps:
       - uses: jfrog/setup-jfrog-cli@v4
         name: jfrog-cli setup
