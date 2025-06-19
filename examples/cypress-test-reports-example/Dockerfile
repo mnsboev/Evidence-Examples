@@ -5,7 +5,7 @@ FROM node:20
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package*.json ./
+COPY examples/cypress-test-reports-example/package*.json ./
 RUN npm install
 
 # Copy the rest of the app
