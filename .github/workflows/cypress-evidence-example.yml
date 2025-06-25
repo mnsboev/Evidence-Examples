@@ -27,11 +27,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           sparse-checkout: |
-            examples/cypress-test-reports-example/**
+            examples/cypress/**
           sparse-checkout-cone-mode: false
       - name: Build and publish Docker image
         run: |
-          docker build . --file ./examples/cypress-test-reports-example/Dockerfile --tag $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME
+          docker build . --file ./examples/cypress/Dockerfile --tag $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME
           jf rt docker-push $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME $REPO_NAME --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
           jf rt build-publish $BUILD_NAME $BUILD_NUMBER
 
@@ -46,25 +46,25 @@ jobs:
           quiet: true
           wait-on: 'http://localhost:3000/app.html'
           wait-on-timeout: 120
-          working-directory: examples/cypress-test-reports-example
+          working-directory: examples/cypress
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         continue-on-error: true
       - name: Merge Cypress results
         run: npm run merge-results
-        working-directory: examples/cypress-test-reports-example
+        working-directory: examples/cypress
 
       # This is an optional step to generate a markdown report
       - name: Generate optional markdown report
         if: env.ATTACH_OPTIONAL_MARKDOWN_TO_EVIDENCE == 'true'
         run: npm run generate:md
-        working-directory: examples/cypress-test-reports-example
+        working-directory: examples/cypress
         env:
           IMAGE_REF: ${{ env.REGISTRY_URL }}/${{ env.REPO_NAME }}/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}
 
       #Steps to attach evidence to the package
       - name: Attach evidence to the package
-        working-directory: examples/cypress-test-reports-example
+        working-directory: examples/cypress
         run: |
           jf evd create \
           --package-name $IMAGE_NAME \

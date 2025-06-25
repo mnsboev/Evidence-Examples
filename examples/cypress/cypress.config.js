@@ -1,7 +1,7 @@
 const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
-  projectId: "cypress-test-reports-example", // Replace with your actual project ID
+  projectId: "cypress-example", // Replace with your actual project ID
   fixturesFolder: false,
   reporter: "mochawesome",
   reporterOptions: {
