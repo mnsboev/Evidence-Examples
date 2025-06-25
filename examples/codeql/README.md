@@ -19,36 +19,30 @@ The workflow performs CodeQL analysis on Go and JavaScript codebases, publishes 
 - Go
 - JavaScript
 
-## Workflow Steps
-1. **Checkout Repository**
-    - Performs sparse checkout of required directories
-    - Only checks out the necessary CodeQL examples and queries
+## Workflow
 
-2. **Setup CodeQL**
-    - Initializes CodeQL for the specified language
-    - Configures custom queries from `examples/codeql/queries/{language}`
-
-3. **Setup Build Environment**
-    - For Go: Installs Go 1.24.3
-    - For JavaScript: Installs Node.js
-    - Configures JFrog CLI with Artifactory credentials
-
-4. **Run CodeQL Analysis**
-    - Performs CodeQL analysis for security and quality
-    - Generates SARIF format results
-    - Saves results without uploading to GitHub
-
-5. **Build and Publish Packages**
-    - For Go:
-        - Configures JFrog CLI for Go repository
-        - Publishes package to Artifactory Go repository
-    - For JavaScript:
-        - Configures JFrog CLI for npm repository
-        - Publishes package to Artifactory npm repository
-
-6. **Attach Evidence**
-    - Attaches CodeQL analysis results as signed evidence to the published packages
-
+```mermaid
+graph TD
+    A[Workflow Dispatch Trigger] --> Matrix{Language Matrix: Go or JavaScript?}
+    Matrix --> |Go|GoSetup[Setup JFrog CLI]
+    Matrix --> |JavaScript|JSSetup[Setup Jfrog CLI]
+    JSSetup -->JSCheckout[Checkout Repository]
+    GoSetup -->GoCheckout[Checkout Repository]
+    JSCheckout -->I[Set up CodeQL for JavaScript]
+    GoCheckout -->H[Set up CodeQL for Go]
+    H --> J[Run CodeQL Analysis for Go]
+    I --> K[Run CodeQL Analysis for JavaScript]
+    J --> L{Attach Optional Custom Markdown Report?}
+    K --> M{Attach Optional Custom Markdown Report?}
+    L -->|Yes| N[Generate Markdown Report for Go]
+    L -->|No| O[Skip Markdown Report for Go]
+    M -->|Yes| P[Generate Markdown Report for JavaScript]
+    M -->|No| Q[Skip Markdown Report for JavaScript]
+    N --> R[Attach Evidence for Go]
+    O --> R[Attach Evidence for Go]
+    P --> S[Attach Evidence for JavaScript]
+    Q --> S[Attach Evidence for JavaScript]
+```
 ## Environment Setup
 
 ### Go Package Configuration

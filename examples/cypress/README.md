@@ -30,23 +30,21 @@ The workflow builds a Docker image, runs Cypress tests, generates test result ev
 - `ATTACH_OPTIONAL_MARKDOWN_TO_EVIDENCE` - Set to `true` to attach a Markdown report as evidence
 - `UPLOAD_CYPRESS_REPORT_TO_CLOUD` - Set to `true` to record Cypress results to the Cypress Dashboard
 
-## Workflow Steps
+## Workflow
 
-1. **Install JFrog CLI**
-    - Installs the JFrog CLI using the official GitHub Action.
-2. **Checkout Repository**
-    - Checks out the source code for the build context.
-3. **Build and Publish Docker Image**
-    - Builds the Docker image and pushes it to Artifactory using JFrog CLI.
-4. **Run Cypress Tests**
-    - Runs Cypress end-to-end tests, records results, and waits for the application to be available.
-5. **Merge Cypress Results**
-    - Merges Cypress test results into a single JSON file.
-6. **Generate Optional Markdown Report**
-    - If enabled, generates a Markdown report from the Cypress results.
-7. **Attach Cypress Evidence Using JFrog CLI**
-    - Attaches the Cypress test results as signed evidence to the Docker image package in Artifactory.
-
+```mermaid
+graph TD
+    A[Workflow Dispatch Trigger] --> B[Setup JFrog CLI]
+    B --> C[Checkout Repository]
+    C --> D[Build and Publish Docker Image]
+    D --> E[Run Cypress Tests]
+    E --> F[Merge Cypress Results]
+    F --> G{Attach Optional Markdown Report?}
+    G -->|Yes| H[Generate Markdown Report]
+    G -->|No| I[Skip Markdown Report]
+    H --> J[Attach Evidence to Package]
+    I --> J[Attach Evidence to Package]
+```
 ## Example Usage
 
 You can trigger the workflow manually from the GitHub Actions tab. The workflow will:
@@ -60,7 +58,7 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
 
 - **Build and Push Docker Image:**
   ```bash
-  docker build . --file ./examples/cypress-test-reports-example/Dockerfile --tag $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME
+  docker build . --file ./examples/cypress/Dockerfile --tag $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME
   jf rt docker-push $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME $REPO_NAME --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
   jf rt build-publish $BUILD_NAME $BUILD_NUMBER
   ```

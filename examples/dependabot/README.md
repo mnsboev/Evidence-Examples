@@ -27,22 +27,20 @@ The workflow builds a Docker image, fetches open Dependabot vulnerability alerts
 - `VERSION` - Image version
 - `BUILD_NAME` - Name for the build info 
 
-## Workflow Steps
-1. **Checkout Repository**
-   - Checks out the source code for the build context.
-2. **Setup JFrog CLI**
-   - Install and Setup the JFrog CLI using the official GitHub Action.
-3. **Log in to Artifactory Docker Registry**
-   - Authenticates Docker with Artifactory for pushing the image.
-4. **Set up Docker Buildx**
-   - Prepares Docker Buildx for advanced build and push operations.
-5. **Build and Push Docker Image to Artifactory**
-   - Builds the Docker image using the provided Dockerfile and tags it for the Artifactory registry.
-   - Pushes the tagged Docker image to the Artifactory Docker registry using JFrog CLI.
-8. **Fetch Dependabot Vulnerability Snapshot**
-   - Fetchs the snapshot of open Dependabot vulnerability alerts for the repository and outputs the results in JSON format.
-9. **Create Dependabot Evidence Using JFrog CLI**
-   - Attaches the Dependabot vulnerability snapshot as signed evidence to the Docker image package in Artifactory.
+## Workflow
+
+```mermaid
+graph TD
+    A[Workflow Dispatch Trigger] --> B[Setup JFrog CLI]
+    B --> C[Checkout Code]
+    C --> D[Build and Push Docker Image to Artifactory]
+    D --> E[Fetch Dependabot Vulnerability Snapshot]
+    E --> F{Attach Optional Custom Markdown Report?}
+    F -->|Yes| G[Generate Custom Markdown Report]
+    F -->|No| H[Skip Markdown Report]
+    G --> I[Attach Evidence to Package]
+    H --> I[Attach Evidence to Package]
+```
 
 ## Example Dependabot Vulnerability Alert Data
 
@@ -62,7 +60,7 @@ The Fetch Dependabot Vulnerability Snapshot step retrieves Dependabot alerts and
 
 - **Build and Push Docker Image to Artifactory**
   ```bash
-    docker build -f ./examples/dependabot-alerts-example/Dockerfile . --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
+    docker build -f ./examples/dependabot/Dockerfile . --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
     jf rt docker-push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION $REPO_NAME --build-name=$BUILD_NAME --build-number=$VERSION
   ```
 - **Fetch Dependabot Vulnerability Snapshot**

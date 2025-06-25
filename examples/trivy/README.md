@@ -25,25 +25,20 @@ scanning in your CI/CD pipeline.
 
 - `REGISTRY_DOMAIN` - Docker registry domain
 
-## Workflow Steps
+## Workflow
 
-1. **Install JFrog CLI**
-    - Installs the JFrog CLI using the official GitHub Action.
-2. **Checkout Repository**
-    - Checks out the source code for the build context.
-3. **Build Docker Image**
-    - Builds the Docker image using the provided Dockerfile and tags it for the Artifactory registry.
-4. **Run Trivy Security Scan**
-    - Scans the built Docker image for vulnerabilities using Trivy and outputs the results in JSON format.
-5. **Generate Custom Markdown For Trivy Results**
-    - (Optional) Converts the Trivy JSON scan results to markdown format for better readability using a python script
-      with predefined static markdown template.
-6. **Push Docker Image to Artifactory**
-    - Pushes the tagged Docker image to the Artifactory Docker registry using JFrog CLI.
-7. **Publish Build Info**
-    - Publishes build information to Artifactory for traceability.
-8. **Attach Trivy Evidence Using JFrog CLI**
-    - Attaches the Trivy scan results as signed evidence to the Docker image package in Artifactory.
+```mermaid
+graph TD
+    A[Workflow Dispatch Trigger] --> B[Setup JFrog CLI]
+    B --> C[Checkout Repository]
+    C --> D[Build and Publish Docker Image to Artifactory]
+    D --> E[Run Trivy Vulnerability Scan]
+    E --> F{Attach Optional Custom Markdown Report?}
+    F -->|Yes| G[Generate Custom Markdown Report]
+    F -->|No| H[Skip Markdown Report]
+    G --> I[Attach Evidence to Package]
+    H --> I[Attach Evidence to Package]
+```
 
 ## Example Usage
 

@@ -1,5 +1,5 @@
 {
-  "name": "cypress-test-reports-example",
+  "name": "cypress",
   "version": "1.0.0",
   "description": "",
   "main": "cypress.config.js",
