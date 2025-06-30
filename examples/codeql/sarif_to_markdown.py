@@ -18,23 +18,12 @@ import os
 class SeverityFormatter:
     """Handles severity-related formatting and conversions."""
 
-    EMOJI_MAP = {
-        'error': '🔴',
-        'warning': '🟡',
-        'note': '🔵',
-        'none': '⚪'
-    }
-
     CVSS_RANGES = [
         (9.0, 'Critical'),
         (7.0, 'High'),
         (4.0, 'Medium'),
         (0.0, 'Low')
     ]
-
-    @classmethod
-    def get_emoji(cls, level: str) -> str:
-        return cls.EMOJI_MAP.get(level.lower(), cls.EMOJI_MAP['none'])
 
     @classmethod
     def get_cvss_rating(cls, security_severity: Any) -> str:
@@ -62,7 +51,7 @@ class MarkdownBuilder:
             codeql_version = tool_info.get('version', 'unknown')
 
         self.sections.extend([
-            "# 🔍 CodeQL Security Analysis Report",
+            "# CodeQL Security Analysis Report",
             "\n## Scan Details",
             f"**Scan Type**: CodeQL Static Analysis\n",
             f"**Scan Date**: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}\n",
@@ -127,8 +116,7 @@ class MarkdownBuilder:
 
         for severity in ['error', 'warning', 'note', 'none']:
             count = severity_count.get(severity, 0)
-            emoji = self.formatter.get_emoji(severity)
-            self.sections.append(f"- {emoji} **{severity.title()}**: {count}")
+            self.sections.append(f"- **{severity.title()}**: {count}")
 
 
     def add_query_info(self) -> None:
@@ -151,8 +139,6 @@ class MarkdownBuilder:
                         self.sections.append(f"- **CVSS Score**: {cvss}")
 
                     severity = properties.get('problem.severity', 'none')
-                    emoji = self.formatter.get_emoji(severity)
-                    self.sections.append(f"- **Severity**: {emoji} {severity.title()}")
 
                     if 'tags' in properties:
                         tags = ', '.join(f'`{tag}`' for tag in properties['tags'])
@@ -184,12 +170,11 @@ class MarkdownBuilder:
                 rule_severity = rule.get('properties', {}).get('problem.severity', 'none')
                 severity = result.get('level', rule_severity)
 
-                emoji = self.formatter.get_emoji(severity)
                 location = self._format_location(result.get('locations', []))
                 message = result.get('message', {}).get('text', 'No description available')
 
                 self.sections.append(
-                    f"| {emoji} {severity.title()} | {rule_name} | {location} | {message} |"
+                    f"| {severity.title()} | {rule_name} | {location} | {message} |"
                 )
     def _format_location(self, locations: List[Dict]) -> str:
         if not locations:
