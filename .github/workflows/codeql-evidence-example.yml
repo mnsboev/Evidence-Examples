@@ -83,7 +83,6 @@ jobs:
       # Attaching the evidence to associated package
       - name: Attach Evidence using JFrog CLI
         run: |
-          jf config show
           if [ ${{ matrix.language_details.name }} == 'go' ]; then
             PACKAGE_VERSION="v0.0.${{ github.run_number }}"
             jf evd create \
