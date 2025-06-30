@@ -14,7 +14,7 @@ def format_digests(digests):
     return ""
 
 def main():
-    with open('decoded-payload.json', 'r') as f:
+    with open('examples/jenkins-slsa/decoded-payload.json', 'r') as f:
         data = json.load(f)
 
     lines = []
