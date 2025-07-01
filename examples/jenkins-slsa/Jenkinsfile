@@ -58,6 +58,7 @@ pipeline {
                 def jsonlFile = jsonlFiles.find { it }
                 if (!jsonlFile) {
                     echo "No .jsonl file found in ${slsaDir}/"
+                    return
                 }
                 echo "Found JSONL file: ${jsonlFile}"
                 def jsonlText = readFile(jsonlFile)
