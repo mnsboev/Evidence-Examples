@@ -5,15 +5,16 @@ pipeline {
         maven 'maven'
     }
     environment {
+            PROJECT_WORKING_DIR = 'examples/jenkins-slsa'
             PACKAGE_REPO_NAME = 'maven-libs-release-local'
             MARKDOWN_FILE_NAME = 'JenkinsSLSA.md'
-            PREDICATE_FILE_NAME = 'decoded-payload.json'
+            PREDICATE_FILE_NAME = '${PROJECT_WORKING_DIR}/decoded-payload.json'
             PREDICATE_TYPE = 'http://slsa.dev/provenance/v1'
     }
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/VigneshC-Jfrog/jenkins-slsa-evidence-example.git', credentialsId: 'github'
+                git branch: 'jenkins-slsa', url: 'https://github.com/VigneshC-Jfrog/Evidence-Examples.git', credentialsId: 'github'
             }
         }
 
@@ -39,10 +40,10 @@ pipeline {
                                 --repo-resolve-snapshots=maven-libs-snapshot \
                                 --repo-deploy-releases=maven-libs-release \
                                 --repo-deploy-snapshots=maven-libs-snapshot'
-                         jf 'mvn clean install'
+                         jf 'mvn clean install -f ${PROJECT_WORKING_DIR}/pom.xml'
                          // Retrieve Maven project artifactId and version for use in later steps
-                         env.PACKAGE_NAME = sh(script: "mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout", returnStdout: true).trim()
-                         env.PACKAGE_VERSION = sh(script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout", returnStdout: true).trim()
+                         env.PACKAGE_NAME = sh(script: "mvn help:evaluate -f ${PROJECT_WORKING_DIR}/pom.xml -Dexpression=project.artifactId -q -DforceStdout", returnStdout: true).trim()
+                         env.PACKAGE_VERSION = sh(script: "mvn help:evaluate -f ${PROJECT_WORKING_DIR}/pom.xml -Dexpression=project.version -q -DforceStdout", returnStdout: true).trim()
                 }
             }
         }
@@ -50,9 +51,9 @@ pipeline {
 
     post {
         success {
-            provenanceRecorder artifactFilter: 'target/*.jar', targetDirectory: 'build/slsa'
+            provenanceRecorder artifactFilter: '${PROJECT_WORKING_DIR}/target/*.jar', targetDirectory: '${PROJECT_WORKING_DIR}/build/slsa'
             script {
-                def slsaDir = 'build/slsa'
+                def slsaDir = '${PROJECT_WORKING_DIR}/build/slsa'
                 def jsonlFiles = sh(script: "ls ${slsaDir}/*.jsonl 2>/dev/null || true", returnStdout: true).trim().split("\\r?\\n")
                 def jsonlFile = jsonlFiles.find { it }
                 if (!jsonlFile) {
@@ -63,9 +64,9 @@ pipeline {
                 def jsonlMap = new groovy.json.JsonSlurperClassic().parseText(jsonlText)
                 def decodedPayload = new String(jsonlMap.decodedPayload.decodeBase64(), 'UTF-8')
                 def prettyJson = groovy.json.JsonOutput.prettyPrint(decodedPayload)
-                writeFile file: "decoded-payload.json", text: prettyJson
-                echo "Decoded payload saved to decoded-payload.json"
-                sh 'python3 json-to-md.py'
+                writeFile file: "${PROJECT_WORKING_DIR}/decoded-payload.json", text: prettyJson
+                echo "Decoded payload saved to examples/jenkins-slsa/decoded-payload.json"
+                sh 'python3 ${PROJECT_WORKING_DIR}/json-to-md.py'
             }
             withCredentials([
                 file(credentialsId: 'PRIVATE_PEM', variable: 'PRIVATE_PEM'),
