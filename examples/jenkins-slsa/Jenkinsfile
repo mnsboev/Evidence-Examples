@@ -14,7 +14,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'jenkins-slsa', url: 'https://github.com/VigneshC-Jfrog/Evidence-Examples.git', credentialsId: 'github'
+                git branch: 'jenkins-slsa', url: 'https://github.com/jfrog/Evidence-Examples.git', credentialsId: 'github'
             }
         }
 
