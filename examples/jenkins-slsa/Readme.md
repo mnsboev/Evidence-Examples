@@ -72,6 +72,10 @@ Trigger the pipeline in Jenkins. The pipeline will:
   jf evd create --package-name="$PACKAGE_NAME" --package-version="$PACKAGE_VERSION" --package-repo-name="$PACKAGE_REPO_NAME" --key="$PRIVATE_PEM" --key-alias="$KEY_ALIAS" --predicate="$PREDICATE_FILE_NAME" --predicate-type="$PREDICATE_TYPE" --markdown="$MARKDOWN_FILE_NAME"
   ```
 
+## Limitation
+
+**Note:** The current pipeline and evidence attachment process expects a single Maven artifact (JAR) is produced per build. It does **not** support multiple subjects or multiple JARs in a single pipeline execution. This is a known limitation and should be considered when working with this example.
+
 ## References
 
 - [SLSA Provenance](https://slsa.dev/spec/v1.1/provenance)
