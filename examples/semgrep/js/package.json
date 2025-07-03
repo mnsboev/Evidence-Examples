@@ -1,0 +1,11 @@
+{
+  "name": "js-semgrep-sample-build",
+  "version": "0.0.1",
+  "description": "Dummy package for testing semgrep",
+  "main": "index.js",
+  "scripts": {
+  },
+  "keywords": [],
+  "author": "JFrog",
+  "license": "ISC"
+}
