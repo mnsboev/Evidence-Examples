@@ -1,0 +1,29 @@
+@import "node_modules/bootstrap/scss/bootstrap.scss";
+@import "node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker";
+
+//=== form
+.error {
+    color: red
+}
+
+.wrapper {
+    background-color: rgba(51, 122, 183, 0.5);
+    display: flex;
+}
+
+.form-container {
+    width: 1000px;
+    margin: auto;
+    margin-top: 50px;
+    margin-bottom: 10px;
+    background-color: #fff;
+    padding: 100px 20px 10px 20px;
+}
+
+.submit-msg {
+    color: rgb(76, 175, 80);
+}
+
+.submit-msg-hidden {
+    display: none;
+} 
