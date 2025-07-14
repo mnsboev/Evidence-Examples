@@ -1,0 +1,48 @@
+{
+  "name": "form-demo",
+  "version": "1.0.0",
+  "description": "Minimal form demo",
+  "scripts": {
+    "serve": "gulp dev --no-color",
+    "package": "gulp package --no-color"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "babelify": "10.0.0",
+    "browserify": "16.5.0",
+    "browserify-shim": "3.8.14",
+    "del": "5.1.0",
+    "gulp": "4.0.2",
+    "gulp-connect": "5.7.0",
+    "gulp-htmlmin": "5.0.1",
+    "gulp-if": "3.0.0",
+    "gulp-rev": "^9.0.0",
+    "gulp-rev-replace": "^0.4.4",
+    "gulp-sass": "^5.1.0",
+    "gulp-uglify": "3.0.2",
+    "gulp-watch": "5.0.1",
+    "sass": "^1.69.0",
+    "run-sequence": "2.2.1",
+    "vinyl-buffer": "1.0.1",
+    "vinyl-source-stream": "2.0.0"
+  },
+  "dependencies": {
+    "bootstrap": "4.3.1",
+    "bootstrap-datepicker": "1.9.0",
+    "jquery": "^3.7.1",
+    "jquery-validation": "1.19.0",
+    "jquery-ui-dist": "^1.12.1"
+  },
+  "browser": {
+    "jquery": "./node_modules/jquery/dist/jquery.js"
+  },
+  "browserify-shim": {
+    "jquery": "$"
+  },
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  }
+} 
