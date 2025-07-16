@@ -1,0 +1,69 @@
+image: node:18
+
+variables:
+  RUNNER_GENERATE_ARTIFACTS_METADATA: "true"
+  REPO_NAME: "evidence-npm"
+  PREDICATE_FILE: "./artifacts-metadata.json"
+  PREDICATE_TYPE: "http://slsa.dev/provenance/v1"
+  MARKDOWN_FILE: "GitLabSLSA.md"
+  PROJECT_WORKING_DIR: "."
+
+stages:
+  - build_and_publish
+  - create_md_file_and_attach_evidence
+
+build_and_publish:
+  stage: build_and_publish
+  before_script:
+    - apt-get update
+    - apt-get install -y curl python3 python3-pip
+    - curl -fL https://install-cli.jfrog.io | sh
+    - jf config add --url ${ARTIFACTORY_URL} --access-token ${ARTIFACTORY_ACCESS_TOKEN} --interactive=false
+  script:
+    - jf npmc --repo-resolve evidence-npm --repo-deploy evidence-npm
+    - jf npm publish
+    - jf npm pack
+    - export PACKAGE_NAME=$(node -p "require('./package.json').name")
+    - export PACKAGE_VERSION=$(node -p "require('./package.json').version")
+    - echo "PACKAGE_NAME=$PACKAGE_NAME" >> build.env
+    - echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> build.env
+  artifacts:
+    paths:
+      - "*.tgz"
+    reports:
+      dotenv: build.env
+  only:
+    - main
+  when: manual
+
+create_md_file_and_attach_evidence:
+  stage: create_md_file_and_attach_evidence
+  before_script:
+    - apt-get update
+    - apt-get install -y curl python3 python3-pip jq
+    - curl -fL https://install-cli.jfrog.io | sh
+    - jf config add --url ${ARTIFACTORY_URL} --access-token ${ARTIFACTORY_ACCESS_TOKEN} --interactive=false
+  script:
+    # Extract predicate from the artifacts-metadata.json file
+    - |
+      if [ -f "${PREDICATE_FILE}" ]; then
+        echo "Found artifacts metadata file: ${PREDICATE_FILE}"
+        
+        # Extract predicate object from the JSON
+        predicateJson=$(jq '.predicate' "${PREDICATE_FILE}")
+        
+        # Write predicate to a separate file for evidence creation
+        echo "$predicateJson" > "${PROJECT_WORKING_DIR}/predicate.json"
+        echo "Predicate object extracted and saved to ${PROJECT_WORKING_DIR}/predicate.json"
+        
+        # Update PREDICATE_FILE variable to point to the extracted predicate
+        export PREDICATE_FILE="${PROJECT_WORKING_DIR}/predicate.json"
+      else
+        echo "No artifacts metadata file found: ${PREDICATE_FILE}"
+      fi
+    - python3 json-to-md.py
+    - jf evd create --package-name="${PACKAGE_NAME}" --package-version="${PACKAGE_VERSION}" --package-repo-name="${REPO_NAME}" --key="${PRIVATE_KEY}" --key-alias="${PRIVATE_KEY_ALIAS}" --predicate="${PREDICATE_FILE}" --predicate-type="${PREDICATE_TYPE}" --markdown="${MARKDOWN_FILE}"
+  dependencies:
+    - build_and_publish
+  needs:
+    - build_and_publish
