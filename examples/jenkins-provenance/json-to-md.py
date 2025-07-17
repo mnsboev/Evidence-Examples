@@ -14,25 +14,12 @@ def format_digests(digests):
     return ""
 
 def main():
-    with open('examples/jenkins-slsa/decoded-payload.json', 'r') as f:
-        data = json.load(f)
+    with open('./predicate.json', 'r') as f:
+        pred = json.load(f)
 
     lines = []
-    lines.append("# SLSA Provenance Statement")
-    lines.append(f"- **predicateType**: `{data.get('predicateType', '')}`")
-    lines.append(f"- **_type**: `{data.get('_type', '')}`\n")
-
-    # Subject
-    lines.append("## Subject")
-    for subj in data.get("subject", []):
-        lines.append(f"- **Name**: `{subj.get('name', '')}`")
-        digests = format_digests(subj.get("digests", {}))
-        if digests:
-            lines.append(f"- **Digests**: `{digests}`")
+    lines.append("# SLSA Provenance Predicate")
     lines.append("")
-
-    # Predicate
-    pred = data.get("predicate", {})
     lines.append("## Predicate\n")
     lines.append("### Build Type")
     lines.append(f"- `{pred.get('buildType', '')}`\n")

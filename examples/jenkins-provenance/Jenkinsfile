@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+    tools {
+        jfrog 'jfrog-cli-latest'
+    }
+    environment {
+            PROJECT_WORKING_DIR = '.'
+            PACKAGE_REPO_NAME = 'evidence-npm'
+            MARKDOWN_FILE_NAME = 'JenkinsSLSA.md'
+            PREDICATE_FILE_NAME = '${PROJECT_WORKING_DIR}/predicate.json'
+            PREDICATE_TYPE = 'http://slsa.dev/provenance/v1'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/jfrog/Evidence-Examples.git', credentialsId: 'github'
+            }
+        }
+
+        stage('Build and Publish') {
+            steps {
+                script {
+                        jf 'npmc --repo-resolve evidence-npm --repo-deploy evidence-npm'
+                        jf 'npm publish'
+                        jf 'npm pack'
+                         // Retrieve npm project name and version for use in later steps
+                         env.PACKAGE_NAME = sh(script: "node -p \"require('./package.json').name\"", returnStdout: true).trim()
+                         env.PACKAGE_VERSION = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            provenanceRecorder artifactFilter: '**.tgz', targetDirectory: '${PROJECT_WORKING_DIR}/build/slsa'
+            script {
+                def slsaDir = '${PROJECT_WORKING_DIR}/build/slsa'
+                def jsonlFiles = sh(script: "ls ${slsaDir}/*.jsonl 2>/dev/null || true", returnStdout: true).trim().split("\\r?\\n")
+                def jsonlFile = jsonlFiles.find { it }
+                if (!jsonlFile) {
+                    echo "No .jsonl file found in ${slsaDir}/"
+                }
+                echo "Found JSONL file: ${jsonlFile}"
+                def jsonlText = readFile(jsonlFile)
+                def jsonlMap = new groovy.json.JsonSlurperClassic().parseText(jsonlText)
+                def decodedPayload = new String(jsonlMap.decodedPayload.decodeBase64(), 'UTF-8')
+                // Extract predicate object from the JSON
+                def jsonObject = new groovy.json.JsonSlurperClassic().parseText(decodedPayload)
+                def predicateObject = jsonObject.predicate
+                def predicateJson = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(predicateObject))
+                writeFile file: "${PROJECT_WORKING_DIR}/predicate.json", text: predicateJson
+                echo "Predicate object extracted and saved to examples/jenkins-provenance/predicate.json"
+                sh 'python3 ${PROJECT_WORKING_DIR}/json-to-md.py'
+            }
+            withCredentials([
+                file(credentialsId: 'PRIVATE_PEM', variable: 'PRIVATE_PEM'),
+                string(credentialsId: 'KEY_ALIAS', variable: 'KEY_ALIAS')
+            ]) {
+                jf 'evd create \
+            --package-name ${PACKAGE_NAME} \
+            --package-version ${PACKAGE_VERSION} \
+            --package-repo-name ${PACKAGE_REPO_NAME} \
+            --key ${PRIVATE_PEM} \
+            --key-alias ${KEY_ALIAS} \
+            --predicate ${PREDICATE_FILE_NAME} \
+            --predicate-type ${PREDICATE_TYPE} \
+            --markdown ${MARKDOWN_FILE_NAME}'
+            }
+        }
+    }
+}
