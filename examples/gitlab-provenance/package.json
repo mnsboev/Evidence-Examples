@@ -1,0 +1,12 @@
+{
+  "name": "gitlab-provenance-evidence-integration",
+  "version": "1.0.0",
+  "description": "GitLab CI/CD pipeline with SLSA provenance evidence integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["gitlab", "provenance", "slsa", "evidence", "ci-cd"],
+  "author": "",
+  "license": "ISC"
+}
