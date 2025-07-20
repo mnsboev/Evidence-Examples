@@ -41,6 +41,8 @@ jobs:
 
       - name: Evidence on docker
         run: |
+          jf -v
+          jf evd create -h
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name example-project-docker-dev-local \
             --key "${{ secrets.PRIVATE_KEY }}"  --key-alias MISHAS-KEY \
@@ -49,6 +51,7 @@ jobs:
 
       - name: Upload readme file
         run: |
+          jf -v
           jf rt upload ./README.md example-project-generic-dev/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
           jf evd create --subject-repo-path example-project-generic-dev/readme/${{ github.run_number }}/README.md \
             --key "${{ secrets.PRIVATE_KEY }}" --key-alias MISHAS-KEY  \
@@ -65,6 +68,7 @@ jobs:
 
       - name: Sign build evidence
         run: |
+          jf -v
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
           jf evd create --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/build-signature/v1 \
