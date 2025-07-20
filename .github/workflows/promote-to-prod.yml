@@ -16,7 +16,7 @@ permissions:
 
 jobs:  
   policy-check-and-promote-to-prod:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
     
       - name: Install jfrog cli

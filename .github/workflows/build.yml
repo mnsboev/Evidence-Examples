@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   Docker-build-with-evidence:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4

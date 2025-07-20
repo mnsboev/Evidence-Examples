@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   docker-build-with-sonar-evidence:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       DOCKER_REPO: 'test-docker-local'
       IMAGE_NAME: 'my-very-cool-image:${{ github.run_number }}'

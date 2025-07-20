@@ -7,7 +7,7 @@ permissions:
   actions: read
 jobs:
   testRail-evidence-example:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       REGISTRY_URL: ${{ vars.JF_URL }}
       REPO_NAME: 'docker-testrail-repo'
