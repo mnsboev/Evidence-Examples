@@ -20,22 +20,11 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Setup jf local
+      - name: Set up jfvm
         run: |
-          # jfvm PATH configuration - ensures jfvm-managed jf takes highest priority
-          export PATH="$HOME/.jfvm/shim:$PATH"
-          # jfvm shell function for enhanced priority (similar to nvm approach)
-          jf() {
-            # Check if jfvm shim exists and is executable
-            if [ -x "$HOME/.jfvm/shim/jf" ]; then
-              # Execute jfvm-managed jf with highest priority
-              "$HOME/.jfvm/shim/jf" "$@"
-            else
-              # Fallback to system jf if jfvm shim not available
-              command jf "$@"
-            fi
-          }
-
+          echo 'export PATH="$HOME/.jfvm/shim:$PATH"' >> $GITHUB_ENV
+          echo 'jf() { if [ -x "$HOME/.jfvm/shim/jf" ]; then "$HOME/.jfvm/shim/jf" "$@"; else command jf "$@"; fi; }' >> $GITHUB_ENV      
+      
 
       - name: Log in to Artifactory Docker Registry
         uses: docker/login-action@v3
