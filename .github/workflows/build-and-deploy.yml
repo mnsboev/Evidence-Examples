@@ -22,9 +22,15 @@ jobs:
 
       - name: Set up jfvm
         run: |
-          echo 'export PATH="$HOME/.jfvm/shim:$PATH"' >> $GITHUB_ENV
-          echo 'jf() { if [ -x "$HOME/.jfvm/shim/jf" ]; then "$HOME/.jfvm/shim/jf" "$@"; else command jf "$@"; fi; }' >> $GITHUB_ENV      
-      
+          # Add jfvm shim to PATH
+          echo '##[add-path]$HOME/.jfvm/shim'
+          
+          # Optionally, install jfvm if not already installed
+          # git clone <jfvm_repository_url> ~/.jfvm          
+          # Load the jf command in the current shell
+          echo 'jf() { if [ -x "$HOME/.jfvm/shim/jf" ]; then "$HOME/.jfvm/shim/jf" "$@"; else command jf "$@"; fi; }' >> $HOME/.zshrc          
+          # Load .zshrc to make the function available in the current context
+          . $HOME/.zshrc
 
       - name: Log in to Artifactory Docker Registry
         uses: docker/login-action@v3
