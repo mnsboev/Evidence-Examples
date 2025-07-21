@@ -20,7 +20,8 @@ jobs:
 
       - name: Override jf tool
         run: |
-          mv /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf $(which jfrog)
+          rm -f /Users/mishas/actions-runner/_work/_tool/jf/2.75.0/arm64/jf
+          cp /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf /Users/mishas/actions-runner/_work/_tool/jf/2.75.0/arm64/jf
           echo "jfrog cli tool overridden with jf"
           jf -v
 
