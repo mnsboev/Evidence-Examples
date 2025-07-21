@@ -15,7 +15,8 @@ jobs:
       - name: Install jfvm
         run: |
           # Install jfvm (JFrog Version Manager) for managing JFrog CLI versions
-          brew install https://raw.githubusercontent.com/jfrog/homebrew-jfrog-cli-vm/main/Formula/jfvm.rb
+          brew tap jfrog/jfrog-cli-vm
+          brew install jfvm
           jfvm link --from /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf --name github-local
           jfvm use github-local
 
