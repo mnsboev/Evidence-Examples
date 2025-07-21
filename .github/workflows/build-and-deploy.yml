@@ -18,15 +18,11 @@ jobs:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
-      - name: Install jfvm
+      - name: Override jf tool
         run: |
-          # Install jfvm (JFrog Version Manager) for managing JFrog CLI versions
-          brew tap jfrog/jfrog-cli-vm
-          brew install jfvm
-          jfvm link --from /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf --name github-local
-          jfvm use github-local
-          export PATH="$HOME/.jfvm/shim:$PATH"
-          which jf
+          mv /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf $(which jfrog)
+          echo "jfrog cli tool overridden with jf"
+          jf -v
 
       - uses: actions/checkout@v4
 
