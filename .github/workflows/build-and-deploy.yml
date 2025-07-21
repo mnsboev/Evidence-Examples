@@ -1,7 +1,7 @@
 name: Build and deploy with evidence
 
 on:
-  [push, workflow_dispatch]
+  [ push, workflow_dispatch ]
 
 permissions:
   id-token: write
@@ -12,6 +12,13 @@ jobs:
     runs-on: self-hosted
     environment: evidence
     steps:
+      - name: Install jfvm
+        run: |
+          # Install jfvm (JFrog Version Manager) for managing JFrog CLI versions
+          brew install https://raw.githubusercontent.com/jfrog/homebrew-jfrog-cli-vm/main/Formula/jfvm.rb
+          jfvm link --from /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf --name github-local
+          jfvm use github-local
+
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
@@ -103,17 +110,17 @@ jobs:
 
 
   Promote-to-qa-and-test:
-    needs: Docker-build-with-evidence    
+    needs: Docker-build-with-evidence
     runs-on: self-hosted
     environment: evidence
     steps:
-    
+
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          
+
       - name: Promote to QA
         run: |
           jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} QA --signing-key PGP-RSA-2048 --sync=true
@@ -131,17 +138,17 @@ jobs:
 
 
   Policy-check-and-promote-to-prod:
-    needs: Promote-to-qa-and-test    
+    needs: Promote-to-qa-and-test
     runs-on: self-hosted
     environment: evidence
     steps:
-    
+
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-    
+
       - name: Checkout
         uses: actions/checkout@v4
 
