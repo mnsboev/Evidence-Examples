@@ -25,7 +25,6 @@ jobs:
           brew install jfvm
           jfvm link --from /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf --name github-local
           jfvm use github-local
-          source ~/.bashrc
           source ~/.zhsrc
           which jf
 
