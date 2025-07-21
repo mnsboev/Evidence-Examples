@@ -25,7 +25,8 @@ jobs:
           brew install jfvm
           jfvm link --from /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf --name github-local
           jfvm use github-local
-          source ~/.zhsrc
+          source ~/.zshrc
+          export PATH="$HOME/.jfvm/shim:$PATH"
           which jf
 
       - uses: actions/checkout@v4
