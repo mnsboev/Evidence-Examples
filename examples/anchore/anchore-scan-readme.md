@@ -1,10 +1,20 @@
 # Anchore Scan Evidence Integration Example
 
-This example demonstrates how to automate Anchore scanning for Docker images and attach the scan results as signed evidence to the image in JFrog Artifactory using GitHub Actions and JFrog CLI.
+This repository provides a working example of a GitHub Actions workflow that automates container vulnerability scanning using Anchore's Grype. It then attaches the resulting SARIF report as signed, verifiable evidence to the scanned Docker image in JFrog Artifactory.
+
+This workflow is a key DevSecOps practice, creating a transparent and auditable security record for every software build.
 
 ## Overview
 
 The workflow builds a Docker image, scans it with Anchore for vulnerabilities, pushes the image to Artifactory, and attaches the Anchore scan results as evidence to the image package. This enables traceability and compliance for security scanning in your CI/CD pipeline.
+
+### **Key Features**
+
+* **Automated Build**: Builds a Docker image from a `Dockerfile`.  
+* **Vulnerability Scanning**: Uses the `anchore/scan-action` (which leverages Grype) to scan the Docker image for known vulnerabilities.  
+* **SARIF Output**: Generates an industry-standard SARIF file detailing the scan's findings.  
+* **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the SARIF data.  
+* **Signed Evidence Attachment**: Attaches the SARIF report as a predicate to the corresponding Docker image in Artifactory, cryptographically signing the evidence for integrity.
 
 ## Prerequisites
 
@@ -53,6 +63,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
 ## Key Commands Used
 
 - **Build Docker Image:**
+  The workflow first builds the Docker image from the specified `Dockerfile` and pushes it to your Artifactory instance using standard `docker` and `jf rt` commands.
+  
   ```bash
   docker build . --file ./examples/anchore/Dockerfile --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
   ```
@@ -61,6 +73,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
   jf rt docker-push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION $REPO_NAME
   ```
 - **Run Anchore Scan:**
+  This step uses the `anchore/scan-action`, which leverages the powerful open-source tool **Grype**, to scan the Docker image for vulnerabilities. The results are saved as a SARIF file. The `fail-build: false` parameter ensures the workflow continues even if vulnerabilities are found, allowing the results to be attached as evidence.
+  
   ```yaml
   uses: anchore/scan-action@v6
   with:
@@ -70,6 +84,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
     fail-build: false
   ```
 - **Attach Evidence:**
+  This final step uses jf evd create to attach the scan results to the Docker image built earlier. The SARIF file serves as the official, machine-readable predicate, while the optional Markdown report provides a summary for easy viewing in the Artifactory UI.
+  
   ```bash
   jf evd create \
     --package-name $IMAGE_NAME \
