@@ -1,10 +1,20 @@
 # Semgrep Security Scan Evidence Example
 
-This example demonstrates how to automate Semgrep security scanning for JavaScript code and attach the scan results as signed evidence to the package in JFrog Artifactory using GitHub Actions and JFrog CLI.
+This repository provides a working example of a GitHub Actions workflow that automates Static Application Security Testing (SAST) on a JavaScript project using Semgrep. It then attaches the resulting SARIF report as signed, verifiable evidence to the package in JFrog Artifactory.
+
+This workflow is an excellent example of a "shift-left" security practice, providing fast, customizable code analysis and creating an auditable security record for every build.
 
 ## Overview
 
 The workflow scans JavaScript code with Semgrep for security issues, publishes the package to Artifactory, and attaches the Semgrep scan results as evidence to the package. This enables traceability and compliance for security scanning in your CI/CD pipeline.
+
+### **Key Features**
+
+* **Containerized Scanning**: Runs the entire job inside the official `semgrep/semgrep` Docker container for a consistent and secure environment.  
+* **Automated SAST**: Leverages the powerful and fast Semgrep engine to scan source code for security vulnerabilities, bugs, and policy violations.  
+* **SARIF Output**: Generates an industry-standard SARIF file detailing the scan's findings.  
+* **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the SARIF data.  
+* **Signed Evidence Attachment**: Attaches the SARIF report as a predicate to the corresponding npm package in Artifactory, cryptographically signing it for integrity.
 
 ## Prerequisites
 
@@ -47,6 +57,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
 ## Key Commands Used
 
 - **Publish JavaScript Package:**
+  The workflow begins by configuring `npm` to use Artifactory via the JFrog CLI. It then publishes the JavaScript package located in the `examples/semgrep/js` directory.
+  
   ```bash
   jf npm-config --repo-resolve=javascript-remote --repo-deploy=javascript-local \
     --server-id-deploy=setup-jfrog-cli-server \
@@ -55,10 +67,14 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
   jf rt bp js-semgrep-sample-build ${{ github.run_number }}
   ```
 - **Run Semgrep Scan:**
+  This step runs the `semgrep scan` command directly against the source code. It uses the `--config auto` flag to automatically detect the language and apply a curated set of rules. The results are saved as a `semgrep-results.sarif` file.
+  
   ```bash
   semgrep scan -q --sarif --config auto ./examples/semgrep/js > semgrep-results.sarif
   ```
 - **Attach Evidence:**
+  This final step uses `jf evd create` to attach the scan results to the npm package that was published earlier. The SARIF file serves as the official, machine-readable predicate, while the optional Markdown report provides a summary for easy viewing in the Artifactory UI.
+  
   ```bash
   jf evd create \
     --package-name js-semgrep-sample-build \
