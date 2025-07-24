@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   package-docker-image-with-anchore-evidence:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       REGISTRY_DOMAIN: ${{ vars.JF_URL }}
       REPO_NAME: 'docker-anchore-repo'

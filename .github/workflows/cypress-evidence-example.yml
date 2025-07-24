@@ -7,7 +7,7 @@ permissions:
   actions: read
 jobs:
   package-docker-image-with-cypress-evidence:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       REGISTRY_URL: ${{ vars.JF_URL }}
       REPO_NAME: 'docker-cypress-repo'

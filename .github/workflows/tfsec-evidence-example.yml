@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   package-terraform-with-tfsec-evidence:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE: true
     steps:

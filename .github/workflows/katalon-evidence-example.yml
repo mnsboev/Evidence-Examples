@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   package-docker-image-with-katalon-evidence:
-    runs-on: windows-latest
+    runs-on: self-hosted
+    environment: evidence
     env:
       REGISTRY_URL: ${{ vars.JF_URL}}
       REPO_NAME: 'docker-katalon-repo'

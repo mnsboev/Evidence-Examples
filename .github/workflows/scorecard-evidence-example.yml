@@ -6,7 +6,7 @@ permissions: read-all
 
 jobs:
   ossf-scorecard-analysis:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       REGISTRY_DOMAIN: ${{ vars.JF_URL }}
       REPO_NAME: 'docker-scorecard-repo'

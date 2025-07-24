@@ -1,7 +1,7 @@
 name: Build and deploy with evidence
 
 on:
-  [push, workflow_dispatch]
+  [ push, workflow_dispatch ]
 
 permissions:
   id-token: write
@@ -9,13 +9,21 @@ permissions:
 
 jobs:
   Docker-build-with-evidence:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    environment: evidence
     steps:
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+      - name: Override jf tool
+        run: |
+          rm -f /Users/mishas/actions-runner/_work/_tool/jf/2.75.0/arm64/jf
+          cp /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf /Users/mishas/actions-runner/_work/_tool/jf/2.75.0/arm64/jf
+          echo "jfrog cli tool overridden with jf"
+          jf -v
 
       - uses: actions/checkout@v4
 
@@ -46,17 +54,20 @@ jobs:
 
       - name: Evidence on docker
         run: |
+          jf -v
+          /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf evd create -h
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
-          jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name example-project-docker-dev-local \
-            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias KEY-ALIAS \
+          /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf evd create --package-name example-project-app --package-version ${{ github.run_number }} --package-repo-name example-project-docker-dev-local \
+            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias MISHAS-KEY \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1 
           echo '🔎 Evidence attached: `signature` 🔏 ' 
 
       - name: Upload readme file
         run: |
+          jf -v
           jf rt upload ./README.md example-project-generic-dev/readme/${{ github.run_number }}/ --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }}
-          jf evd create --subject-repo-path example-project-generic-dev/readme/${{ github.run_number }}/README.md \
-            --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS  \
+          /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf evd create --subject-repo-path example-project-generic-dev/readme/${{ github.run_number }}/README.md \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias MISHAS-KEY  \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/signature/v1
 
       - name: Collecting Information from Git
@@ -70,10 +81,11 @@ jobs:
 
       - name: Sign build evidence
         run: |
+          jf -v
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'" }' > sign.json
-          jf evd create --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }} \
+          /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf evd create --build-name ${{ vars.BUILD_NAME }} --build-number ${{ github.run_number }} \
             --predicate ./sign.json --predicate-type https://jfrog.com/evidence/build-signature/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias KEY-ALIAS
+            --key "${{ secrets.PRIVATE_KEY }}"  --key-alias MISHAS-KEY
           echo '🔎 Evidence attached: `build-signature` 🔏 ' >> $GITHUB_STEP_SUMMARY
 
       - name: Create release bundle
@@ -82,20 +94,24 @@ jobs:
           jf release-bundle-create ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} --signing-key PGP-RSA-2048 --spec bundle-spec.json --sync=true
           NAME_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&repositoryKey=release-bundles-v2&activeKanbanTab=promotion'
           VER_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&releaseBundleVersion='${{ github.run_number }}'&repositoryKey=release-bundles-v2&activeVersionTab=Version%20Timeline&activeKanbanTab=promotion'
+          jf evd create --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias MISHAS-KEY \
+            --predicate ./sign.json --predicate-type https://jfrog.com/evidence/release-bundle-signature/v1
           echo '📦 Release bundle ['${{ vars.BUNDLE_NAME }}']('${NAME_LINK}'):['${{ github.run_number }}']('${VER_LINK}') created' >> $GITHUB_STEP_SUMMARY
 
 
   Promote-to-qa-and-test:
-    needs: Docker-build-with-evidence    
-    runs-on: ubuntu-latest
+    needs: Docker-build-with-evidence
+    runs-on: self-hosted
+    environment: evidence
     steps:
-    
+
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          
+
       - name: Promote to QA
         run: |
           jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} QA --signing-key PGP-RSA-2048 --sync=true
@@ -106,23 +122,24 @@ jobs:
           echo '{ "actor": "${{ github.actor }}", "date": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'", "test": "CI test", "result": "success" }' > test_evidence.json
           JF_LINK=${{ vars.ARTIFACTORY_URL }}'/ui/artifactory/lifecycle/?bundleName='${{ vars.BUNDLE_NAME }}'&bundleToFlash='${{ vars.BUNDLE_NAME }}'&releaseBundleVersion='${{ github.run_number }}'&repositoryKey=release-bundles-v2&activeVersionTab=Version%20Timeline&activeKanbanTab=promotion'
           echo 'Test on Release bundle ['${{ vars.BUNDLE_NAME }}':'${{ github.run_number }}']('${JF_LINK}') success' >> $GITHUB_STEP_SUMMARY
-          jf evd create --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
+          /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf evd create --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
             --predicate ./test_evidence.json --predicate-type https://jfrog.com/evidence/testing-results/v1 \
-            --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS
+            --key "${{ secrets.PRIVATE_KEY }}" --key-alias MISHAS-KEY
           echo '🔎 Evidence attached: integration-test 🧪 ' >> $GITHUB_STEP_SUMMARY
 
 
   Policy-check-and-promote-to-prod:
-    needs: Promote-to-qa-and-test    
-    runs-on: ubuntu-latest
+    needs: Promote-to-qa-and-test
+    runs-on: self-hosted
+    environment: evidence
     steps:
-    
+
       - name: Install jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-    
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -147,7 +164,7 @@ jobs:
       - name: Promote to Production
         run: |
           if [ "${{ env.RESULT }}" == "true" ]; then
-            jf evd create --key "${{ secrets.PRIVATE_KEY }}" --key-alias KEY-ALIAS \
+            /Users/mishas/dev/repos/jfrog-cli/jfrog-cli/jf evd create --key "${{ secrets.PRIVATE_KEY }}" --key-alias MISHAS-KEY \
               --release-bundle ${{ vars.BUNDLE_NAME }} --release-bundle-version ${{ github.run_number }} \
               --predicate ./policy.json --predicate-type https://jfrog.com/evidence/approval/v1
             jf release-bundle-promote ${{ vars.BUNDLE_NAME }} ${{ github.run_number }} PROD --signing-key PGP-RSA-2048  --sync=true
@@ -156,4 +173,3 @@ jobs:
             echo "Fail promotion policy check" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-          
