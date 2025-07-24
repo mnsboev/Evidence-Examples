@@ -1,9 +1,19 @@
 # Dependabot Vulnerability Alerts Evidence Example Workflow
 
-The GitHub Actions workflow, named dependabot-evidence-example.yml, demonstrates how to automate the collection of Dependabot vulnerability alerts and attach them as signed evidence to a Docker image within JFrog Artifactory.
+This repository provides a working example of a GitHub Actions workflow that captures all open Dependabot vulnerability alerts for a repository and attaches them as signed, verifiable evidence to a Docker image in JFrog Artifactory.
+
+This workflow creates a point-in-time snapshot of your repository's dependency security posture,
 
 ## Overview
 The workflow builds a Docker image, fetches open Dependabot vulnerability alerts for the repository, pushes the Docker image to JFrog Artifactory, and attaches the Dependabot alerts as signed evidence to the Docker image package. This workflow's primary goal is to automate the collection of security scan results from Dependabot and associate them directly with the deployed artifact in Artifactory, enhancing traceability and compliance for security posture in your CI/CD pipeline.
+
+### **Key Features**
+
+* **Build & Publish**: Builds a Docker image from a `Dockerfile` to serve as the subject for the evidence.  
+* **Vulnerability Data Fetching**: Uses the `gh` CLI to query the GitHub API for all open Dependabot alerts.  
+* **JSON Transformation**: Leverages `jq` to transform the raw API response into a clean, structured JSON predicate.  
+* **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the JSON data.  
+* **Signed Evidence Attachment**: Attaches the JSON report as a predicate to the co
 
 ## Prerequisites
 - JFrog CLI 2.65.0 or above (installed automatically in the workflow)
@@ -59,11 +69,15 @@ The Fetch Dependabot Vulnerability Snapshot step retrieves Dependabot alerts and
 ## Key Commands Used
 
 - **Build and Push Docker Image to Artifactory**
+  The workflow first builds a Docker image and pushes it to your Artifactory instance. This image acts as the "subject" to which the Dependabot evidence will be attached.
+  
   ```bash
     docker build -f ./examples/dependabot/Dockerfile . --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
     jf rt docker-push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION $REPO_NAME --build-name=$BUILD_NAME --build-number=$VERSION
   ```
 - **Fetch Dependabot Vulnerability Snapshot**
+  This is the core logic of the workflow. It uses the `gh api` command to query your repository's open Dependabot alerts. The powerful `jq` command then parses the complex JSON response from the API, extracting and reformatting the key details into a clean `dependabot.json` file.rresponding Docker image in Artifactory, cryptographically signing it for integrity.
+  
   ```bash
     gh api "repos/${OWNER}/${REPO}/dependabot/alerts?state=open" \
             --jq '[.[] |
@@ -83,7 +97,10 @@ The Fetch Dependabot Vulnerability Snapshot step retrieves Dependabot alerts and
 
     jq -n --argjson data "$(cat result.json)" '{ data: $data }' > dependabot.json
   ```
+
 - **Attach Evidence:**
+  This final step uses `jf evd create` to attach the Dependabot alert data to the Docker image. The `dependabot.json` file serves as the official, machine-readable predicate, while the optional Markdown report provides a summary for easy viewing in the Artifactory UI.
+  
   ```bash
   jf evd create \
             --package-name $IMAGE_NAME \
