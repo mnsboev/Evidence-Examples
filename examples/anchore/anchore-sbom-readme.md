@@ -1,10 +1,19 @@
 # Anchore SBOM Evidence Integration Example
 
 This example demonstrates how to automate SBOM generation for Docker images using Anchore and attach the SBOM as signed evidence to the image in JFrog Artifactory using GitHub Actions and JFrog CLI.
+This repository provides a working example of a GitHub Actions workflow that automates the creation of a Software Bill of Materials (SBOM) for a Docker image using Anchore's Syft. It then attaches the resulting SBOM as signed, verifiable evidence to the image in JFrog Artifactory.
+
 
 ## Overview
 
 The workflow builds a Docker image, generates an SBOM (Software Bill of Materials) using Anchore, pushes the image to Artifactory, and attaches the SBOM as evidence to the image package. This enables traceability and compliance for software composition analysis in your CI/CD pipeline.
+
+### **Key Features**
+
+* **Automated Build**: Builds a Docker image from a `Dockerfile`.  
+* **SBOM Generation**: Uses the `anchore/sbom-action` to generate a comprehensive SBOM in JSON format.  
+* **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the JSON SBOM.  
+* **Signed Evidence Attachment**: Attaches the JSON SBOM as a predicate to the corresponding Docker image in Artifactory, cryptographically signing the evidence for integrity.
 
 ## Prerequisites
 
@@ -54,6 +63,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
 ## Key Commands Used
 
 - **Build Docker Image:**
+  * The workflow first builds the Docker image from the specified `Dockerfile` and pushes it to your Artifactory instance using the standard `docker` and `jf rt` commands.
+    
   ```bash
   docker build . --file ./examples/anchore/Dockerfile --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
   ```
@@ -62,6 +73,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
   jf rt docker-push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION $REPO_NAME
   ```
 - **Generate SBOM:**
+  This step uses the `anchore/sbom-action`, which leverages the powerful open-source tool **Syft**, to scan the Docker image and generate a detailed SBOM. The output is saved as a JSON file.
+  
   ```yaml
   uses: anchore/sbom-action@v0
   with:
@@ -69,6 +82,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
     output-file: anchore-sbom.json
   ```
 - **Attach Evidence:**
+  This final step uses `jf evd create` to attach the SBOM to the Docker image that was built at the start. The JSON SBOM serves as the official, machine-readable predicate, while the optional Markdown report provides a summary for easy viewing in the Artifactory UI.
+  
   ```bash
   jf evd create \
     --package-name $IMAGE_NAME \
