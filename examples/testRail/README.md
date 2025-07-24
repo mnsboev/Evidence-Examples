@@ -1,10 +1,20 @@
 # TestRail Evidence Integration Example
 
-This project demonstrates how to automate end-to-end testing for Dockerized applications, upload test results to TestRail, and attach the signed test results as evidence to the Docker image in JFrog Artifactory using GitHub Actions and JFrog CLI.
+This repository provides a working example of a GitHub Actions workflow that orchestrates a complete testing lifecycle. It builds a Docker image, runs automated E2E tests, uploads the results to a TestRail test run, and simultaneously attaches the same results as signed, verifiable evidence to the image in JFrog Artifactory.
+
+This workflow bridges the gap between your Test Case Management (TCM) system and your artifact repository, providing comprehensive traceability for quality assurance.
 
 ## Overview
 
 The workflow builds a Docker image, runs automated tests, uploads test results to TestRail, generates test result evidence (JSON and Markdown), pushes the image to Artifactory, and attaches the signed TestRail test results as evidence to the image package. This enables traceability and compliance for testing in your CI/CD pipeline with TestRail integration.
+
+### **Key Features**
+
+* **Automated E2E Testing**: Uses **Cypress** to run a full suite of end-to-end tests against a live application.  
+* **Dual-Format Reporting**: Generates test reports in two formats: **JUnit XML** for TestRail compatibility and **JSON** for rich data evidence.  
+* **TestRail Integration**: Leverages the `gurock/trcli-action` to automatically upload test results to a specified project in TestRail, creating or updating test runs.  
+* **Optional Markdown Summary**: Includes a script to generate a human-readable Markdown report from the JSON test results.  
+* **Signed Evidence Attachment**: Attaches the JSON test report as a predicate to the corresponding Docker image in Artifactory, cryptographically signing the evidence for integrity.
 
 ## Prerequisites
 
@@ -63,6 +73,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
 ## Key Commands Used
 
 - **Build and Push Docker Image:**
+  The workflow first builds a Docker image and pushes it to Artifactory. This image serves as the "subject" for the test results. The associated build information is also published.
+  
   ```bash
   docker build . --file ./examples/testRail/Dockerfile --tag $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME
   jf rt docker-push $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME $REPO_NAME --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
@@ -70,6 +82,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
   ```
 
 - **Run Automated Tests:**
+  This step uses the `cypress-io/github-action` to run the end-to-end tests. Note that `continue-on-error: true` is used, ensuring that even failed test results are reported and attached as evidence.
+  
   ```yaml
   uses: cypress-io/github-action@v6
   with:
@@ -83,6 +97,9 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
   continue-on-error: true
 
 - **Upload Results to TestRail:**
+  The raw test results are merged into two distinct formats for different purposes: a `junit-report.xml` file for TestRail and an `overall-report.json` file for the Artifactory evidence.
+  Using the `gurock/trcli-action`, the workflow uploads the `junit-report.xml` to your TestRail project, automatically creating a new test run and populating it with the results.
+  
   ```yaml
   uses: gurock/trcli-action@main
   with:
@@ -98,6 +115,8 @@ You can trigger the workflow manually from the GitHub Actions tab. The workflow 
   ```
 
 - **Attach Evidence:**
+  Finally, the workflow attaches the `overall-report.json` to the Docker image in Artifactory using `jf evd create`. This creates a permanent, tamper-proof link between the artifact and its detailed test results.
+  
   ```bash
   jf evd create \
   --package-name $IMAGE_NAME \
