@@ -1,8 +1,8 @@
 # **Trufflehog Secret Scan Evidence Example**
 
-This repository provides a working example of a GitHub Actions workflow that automates secret scanning using **Trufflehog**. It then attaches the resulting secret detection report as signed, verifiable evidence to the package in **JFrog Artifactory**.
+This repository provides a working example of a GitHub Actions workflow that automatically scans a repository for exposed secrets using Trufflehog. It then attaches the resulting scan report as signed, verifiable evidence to a Docker image in JFrog Artifactory.
 
-This workflow is an essential pattern for DevSecOps, creating a traceable, compliant, and secure software supply chain by detecting and documenting potential secrets in your codebase.
+This workflow is an essential DevSecOps practice, helping to prevent accidental secret leakage by creating a traceable and auditable record of what was found in your codebase at a specific point in time.
 
 ### **Key Features**
 
@@ -105,18 +105,24 @@ Once the workflow completes successfully, you can navigate to your repository in
 ### **Key Commands Used**
 
 * **Run Trufflehog Scan:**
+  This step runs the `trufflesecurity/trufflehog` container to scan the entire checked-out repository. The results are output in a `.jsonl` (JSON Lines) format. The `|| true` ensures the workflow continues even if secrets are found, allowing the findings to be reported as evidence.
 
 ```bash
 docker run --rm -it -v "$PWD:/pwd" trufflesecurity/trufflehog:latest filesystem /pwd --json
 ```
 
 * **Process Results:**
+  The raw `.jsonl` output from Trufflehog is processed in two steps:
+
+1. A Python script (`jsonl_to_json_converted.py`) converts the JSON Lines file into a standard, well-formed JSON array named `trufflehog.json`, which is required for the evidence predicate.  
+2. If `ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE` is `true`, a second script (`process_trufflehog_results.py`) generates a human-readable Markdown summary.
 
 ```bash
 python process_trufflehog_results.py trufflehog-results.json
 ```
 
 * **Attach Evidence:**
+  This final step uses jf evd create to attach the processed trufflehog.json report to the Docker image. This creates a permanent, tamper-proof record of the secret scan for the associated build.
 
 ```bash
 jf evd create \
