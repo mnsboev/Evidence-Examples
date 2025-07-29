@@ -1,8 +1,8 @@
 # **Dive Image Analysis Evidence Example**
 
-This repository provides a working example of a GitHub Actions workflow that automates Docker image analysis using **Dive**. It then attaches the resulting analysis report as signed, verifiable evidence to the package in **JFrog Artifactory**.
+This repository provides a working example of a GitHub Actions workflow that automates Docker image analysis using Dive. It then attaches the resulting layer analysis report as signed, verifiable evidence to the package in JFrog Artifactory.
 
-This workflow is an essential pattern for DevSecOps, creating a traceable, compliant, and efficient software supply chain.
+This workflow helps you "shift left" on container optimization by providing a clear, auditable record of your image's efficiency,
 
 ### **Key Features**
 
@@ -111,12 +111,14 @@ Once the workflow completes successfully, you can navigate to your repository in
 ### **Key Commands Used**
 
 * **Build Docker Image:**
+  The workflow first builds a Docker image from the specified `Dockerfile` and pushes it to your Artifactory instance using standard `docker` and `jf rt` commands.
 
 ```
 docker build . --file ./examples/dive/Dockerfile --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
 ```
 
 * **Run Dive Analysis:**
+  This step runs the `wagoodman/dive` tool as a Docker container to analyze the image that was just pushed. It mounts the host's Docker socket to access the image and binds the current directory to get the JSON report out of the container.
 
 ```
 docker run -it --rm -e CI=true \
@@ -133,6 +135,7 @@ jf rt docker-push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION $REPO_NAME --
 ```
 
 * **Attach Evidence:**
+  This final step uses `jf evd create` to attach the Dive analysis to the Docker image built earlier. The `dive.json` file serves as the official, machine-readable predicate, while the optional Markdown report provides a summary for easy viewing in the Artifactory UI.
 
 ```
 jf evd create \
