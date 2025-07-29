@@ -1,6 +1,6 @@
 # Jenkins SLSA Evidence Example
 
-This project demonstrates how to automate npm builds, generate SLSA provenance, convert it to Markdown, and attach the signed provenance evidence to the npm package in JFrog Artifactory using Jenkins Pipeline and JFrog CLI.
+This project demonstrates how to automate npm builds, generate SLSA provenance, convert it to Markdown, and attach the signed provenance evidence to the npm package in JFrog Artifactory using Jenkins Pipeline and JFrog CLI. 
 
 ## Overview
 
@@ -98,6 +98,10 @@ Trigger the pipeline in Jenkins. The pipeline will:
   python3 json-to-md.py
   ```
 - **Attach Evidence:**
+  This crucial phase runs after the build is successful and handles the generation and attachment of the evidence.
+
+* **Generate SLSA Provenance**: The **Jenkins SLSA Plugin** automatically hooks into the build process. After the build completes, it generates an SLSA-compliant provenance file (e.g., `predicate.json`) attesting to the build's inputs, steps, and outputs.  
+* **Attach Signed Evidence**: The final step uses `jf evd create` to attach the generated provenance file to the npm package that was published earlier. This creates a permanent, tamper-proof link between the package and its build provenance.
   ```bash
   jf evd create --package-name="$PACKAGE_NAME" --package-version="$PACKAGE_VERSION" --package-repo-name="$PACKAGE_REPO_NAME" --key="$PRIVATE_PEM" --key-alias="$KEY_ALIAS" --predicate="$PREDICATE_FILE_NAME" --predicate-type="$PREDICATE_TYPE" --markdown="$MARKDOWN_FILE_NAME"
   ```
