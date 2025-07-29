@@ -1,6 +1,15 @@
 # Jenkins SLSA Evidence Example
 
-This project demonstrates how to automate npm builds, generate SLSA provenance, convert it to Markdown, and attach the signed provenance evidence to the npm package in JFrog Artifactory using Jenkins Pipeline and JFrog CLI.
+This repository provides a working example of a Jenkins Pipeline that builds an npm package, automatically generates SLSA-compliant provenance, and attaches this provenance as signed, verifiable evidence to the package in JFrog Artifactory.
+
+This pipeline is a cornerstone of a secure software supply chain, creating a tamper-proof, auditable record that verifies how and where your software was built, all within your Jenkins ecosystem.
+
+### **Key Features**
+
+* **Automated npm Build**: Builds and publishes an npm package to Artifactory using the JFrog CLI.  
+* **SLSA Provenance Generation**: Leverages the **Jenkins SLSA Plugin** to automatically generate SLSA-compliant provenance metadata for the build.  
+* **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the provenance data.  
+* **Signed Evidence Attachment**: Attaches the SLSA provenance predicate to the corresponding npm package in Artifactory, cryptographically signing it for integrity.
 
 ## Overview
 
@@ -98,6 +107,11 @@ Trigger the pipeline in Jenkins. The pipeline will:
   python3 json-to-md.py
   ```
 - **Attach Evidence:**
+  This crucial phase runs after the build is successful and handles the generation and attachment of the evidence.
+
+   * **Generate SLSA Provenance**: The **Jenkins SLSA Plugin** automatically hooks into the build process. After the build completes, it generates an SLSA-compliant provenance file (e.g., `predicate.json`) attesting to the build's inputs, steps, and outputs.  
+   * **Attach Signed Evidence**: The final step uses `jf evd create` to attach the generated provenance file to the npm package that was published earlier. This creates a permanent, tamper-proof link between the package and its build provenance.
+  
   ```bash
   jf evd create --package-name="$PACKAGE_NAME" --package-version="$PACKAGE_VERSION" --package-repo-name="$PACKAGE_REPO_NAME" --key="$PRIVATE_PEM" --key-alias="$KEY_ALIAS" --predicate="$PREDICATE_FILE_NAME" --predicate-type="$PREDICATE_TYPE" --markdown="$MARKDOWN_FILE_NAME"
   ```
