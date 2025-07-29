@@ -1,8 +1,8 @@
 # **Katalon Studio Evidence Integration Example**
 
-This repository provides a working example of a GitHub Actions workflow that automates **Katalon Studio** testing for Dockerized applications. It then attaches the resulting test results as signed, verifiable evidence to the package in **JFrog Artifactory**.
+This repository provides a working example of a GitHub Actions workflow that automates UI testing using Katalon Studio. The workflow builds a Docker image, deploys it as a live container, runs tests against it, and then attaches the results as signed, verifiable evidence to the image in JFrog Artifactory.
 
-This workflow is an essential pattern for DevSecOps, creating a traceable, compliant, and secure software supply chain with comprehensive test coverage.
+This workflow is a powerful pattern for ensuring application quality, creating a permanent, auditable record of your UI test outcomes directly linked to a specific software build.
 
 ### **Key Features**
 
@@ -125,12 +125,16 @@ Once the workflow completes successfully, you can navigate to your repository in
 ### **Key Commands Used**
 
 * **Build and Push Docker Image:**
+  The workflow first builds a Docker image and pushes it to Artifactory. This image contains the application that will be tested.
   ```bash
   docker build . --file ./examples/katalon/Dockerfile --tag $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME
   jf rt docker-push $REGISTRY_URL/$REPO_NAME/$IMAGE_NAME:$TAG_NAME $REPO_NAME --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
   ```
 
 * **Run Katalon Studio Tests:**
+  The workflow pulls the image it just built and runs it as a detached container named `katalon-test-app`. A PowerShell script then polls the application until it is responsive and ready for testing. This step uses the `katalon-studio/katalon-studio-github-action` to execute a Test Suite Collection against the running application. The `cKatalon generates a JUnit XML report in a timestamped directory. The workflow uses a PowerShell script to locate this report and then runs a Python script to convert the XML data into a standardized katalon-results.json file.ontinue-on-error: true` flag ensures that the workflow will proceed even if tests fail, allowing the failure results to be recorded as evidence.
+
+  
   ```yaml
   uses: katalon-studio/katalon-studio-github-action@v4.0
   with:
@@ -141,6 +145,7 @@ Once the workflow completes successfully, you can navigate to your repository in
   ```
 
 * **Attach Evidence:**
+  Finally, the workflow attaches the `katalon-results.json` to the Docker image in Artifactory using `jf evd create`. This creates a permanent, tamper-proof link between the artifact and its detailed UI test results.
   ```bash
   $commandArgs = @(
       "evd", "create",
