@@ -11,6 +11,7 @@ This pipeline is a cornerstone of a secure software supply chain, creating a tam
 * **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the provenance data.  
 * **Signed Evidence Attachment**: Attaches the SLSA provenance predicate to the corresponding npm package in Artifactory, cryptographically signing it for integrity.
 
+
 ## Overview
 
 The pipeline builds an npm project, generates SLSA provenance, converts the provenance JSON to Markdown, publishes the artifact to Artifactory, and attaches the signed provenance as evidence to the npm package. This enables traceability and compliance for your Node.js artifacts in CI/CD.

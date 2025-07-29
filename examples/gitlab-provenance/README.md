@@ -1,8 +1,8 @@
 # **GitLab Provenance & SLSA Evidence Example**
 
-This repository provides a working example of a GitLab CI/CD pipeline that automates npm builds, generates SLSA provenance, and attaches the resulting provenance evidence to the npm package in **JFrog Artifactory**.
+This repository provides a working example of a GitLab CI/CD pipeline that builds an npm package, automatically generates SLSA-compliant provenance using GitLab's built-in features, and attaches this provenance as signed, verifiable evidence to the package in JFrog Artifactory.
 
-This pipeline is an essential pattern for DevSecOps, creating a traceable, compliant, and secure software supply chain.
+This pipeline is a cornerstone of a secure software supply chain, creating a tamper-proof, auditable record that verifies how and where your software was built.
 
 ### **Key Features**
 
@@ -139,6 +139,7 @@ python3 json-to-md.py
 ```
 
 * **Attach Evidence:**
+  The final step uses `jf evd create` to attach the extracted `predicate.json` to the npm package that was published in the first stage. This creates a permanent, tamper-proof attestation of the package's build provenance.
 ```bash
 jf evd create \
   --package-name "${PACKAGE_NAME}" \
