@@ -1,100 +1,89 @@
-name: jira-evidence-example
+name: "Jira evidence integration example"
 
 on:
-  workflow_dispatch:  # This allows manual triggering of the workflow
-  push:
-    branches:
-      - CCS-2-Additional_evidence_examples
-  pull_request:
-      branches:
-        - CCS-2-Additional_evidence_examples
-permissions:
-  id-token: write
-  contents: read
+  workflow_dispatch:
+    inputs:
+      start_commit:
+        description: "Starting commit (excluded from evidence filter)"
+        required: true
+      fetch_depth:
+        description: "Number of previous commits to fetch (default is 10)"
+        required: false
+        default: "10"
 
 jobs:
   docker-build-with-jira-evidence:
     runs-on: ubuntu-latest
     env:
-      DOCKER_REPO: 'test-docker-local'
-      IMAGE_NAME: 'my-very-cool-image:${{ github.run_number }}'
+      REGISTRY_DOMAIN: ${{ vars.JF_URL }}
+      REPO_NAME: 'docker-jira-repo-local'
+      IMAGE_NAME: 'docker-jira-image'
+      VERSION: ${{ github.run_number }}
+      BUILD_NAME: 'jira-docker-build'
+      JIRA_ID_REGEX: '[A-Z]+-[0-9]+'
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      JIRA_URL: ${{ vars.JIRA_URL }}
+      JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
+      ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE: true
     steps:
-      - name: Install jfrog cli
-        id:   setup-cli
+      - name: Setup jfrog cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: ${{ vars.ARTIFACTORY_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-         oidc-provider-name: jfrog-github-oidc
-
-      - uses: actions/checkout@v4
+          fetch-depth: ${{ github.event.inputs.fetch_depth }}
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - name: Build JIRA helper binary
+        run: |
+          cd examples/jira/helper
+          chmod +x build.sh
+          ./build.sh
+          cd -
       - name: Log in to Artifactory Docker Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.ARTIFACTORY_URL }}
-          username: ${{ steps.setup-cli.outputs.oidc-user }}
-          password: ${{ steps.setup-cli.outputs.oidc-token }}
-
+          username: ${{ secrets.JF_USER }}
+          password: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Build and Push Docker image
-        uses: docker/build-push-action@v6
-        id: docker-build
-        with:
-          push: true
-          provenance: false
-          platforms: linux/amd64 #, linux/arm64
-          build-args: REPO_URL=${{ vars.JF_URL }}/example-project-docker-dev-remote
-          tags: ${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}
-
-      - name: add docker package to build
+      - name: Build and publish Docker Image to Artifactory
         run: |
-          echo "${{ vars.JF_URL }}/${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}@${{ steps.docker-build.outputs.digest }}" > metadata.json
-          jf rt build-docker-create ${{ env.DOCKER_REPO }} --image-file metadata.json --build-name $GITHUB_WORKFLOW --build-number ${{ github.run_number }}
-
-      - name: Publish build info
-        if: ${{ true }}
-        run: |
+          cd examples/jira
+          docker build . --file Dockerfile --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
+          
+          IMAGE_TAG="$REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION"
+          docker push $IMAGE_TAG
+          
+          REGISTRY_DIGEST=$(docker inspect $IMAGE_TAG | jq -r '.[0].RepoDigests[0]' | cut -d'@' -f2)
+          echo "$IMAGE_TAG@$REGISTRY_DIGEST" > metadata.txt
+          
+          jf rt build-docker-create $REPO_NAME --image-file metadata.txt --build-name=$BUILD_NAME --build-number=$VERSION
           jf rt build-collect-env
           jf rt build-add-git
-          jf rt build-publish
+          jf rt build-publish $BUILD_NAME $VERSION
+          cd -
+      - name: Fetch details from jira
+        run: | 
+          cd examples/jira/helper
+          ./main "${{ github.event.inputs.start_commit }}"
+          cd -
+
 
       - name: Create JIRA evidence
-        env:
-            jira_token: ${{ secrets.JIRA_TOKEN }}
-            jira_username: ${{ secrets.JIRA_USERNAME }}
-            jira_url: ${{ secrets.JIRA_URL }}
         run: |
-            BRANCH_NAME=$(git branch --show-current)
-            jira_id=$(echo "$BRANCH_NAME" | sed -E 's/^([^-]+-[0-9]+).*/\1/')
-            echo "The branch name is: $BRANCH_NAME"
-            echo "The jira_id is: $jira_id"
-            # uncomment the line below to use the commit message instead of the branch name
-            #START_COMMIT=$(git log -1 --format="%H %s")
-            #jira_id=$(echo "$BRANCH_NAME" | cut -d' ' -f2)
-          
-            # Check if the jira_id matches the JIRA ID format
-            if [[ $jira_id =~ ^[A-Z]+-[0-9]+$ ]]; then
-                echo "A valid JIRA ID was found in branch name: $jira_id"
-                set +e
-                ./examples/jira-transition-example/bin/jira-transition-checker-linux-amd64 "Done" $jira_id > predicate.json
-                # add --failOnMissingTransition to fail the build if the JIRA does not pass the transition check
-                EXIT_CODE=$?
-                set -e
-                # create evidence only if the jira transition checker was successful
-                if [ $EXIT_CODE -eq 0 ]; then
-                  # Attach evidence onto build using JFrog CLI                
-                  jf evd create \
-                  --build-name $GITHUB_WORKFLOW \
-                  --build-number "${{ github.run_number }}" \
-                  --predicate ./predicate.json \
-                  --predicate-type https://jfrog.com/evidence/build-jira-transition/v1 \
-                  --key "${{ secrets.JIRA_TEST_PKEY }}" \
-                  --key-alias ${{ vars.JIRA_TEST_KEY }}    
-                else
-                  echo "JIRA transition checked completed with an error, or not all JIRAs pass the transition checked"
-                fi
-            else
-                echo "No valid JIRA ID located in branch name: $BRANCH_NAME"
-            fi
+          jf evd create \
+            --build-name $BUILD_NAME \
+            --build-number ${{ github.run_number }} \
+            --key "${{ secrets.PRIVATE_KEY }}" \
+            --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" \
+            --predicate ./examples/jira/helper/transformed_jira_data.json \
+            --predicate-type http://atlassian.com/jira/issues/v1 \
+            ${{ env.ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE == 'true' && '--markdown "examples/jira/helper/transformed_jira_data.md"' || '' }}
+
