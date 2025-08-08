@@ -1,10 +1,19 @@
 # GitLab SBOM Evidence Example
 
-This project demonstrates how to automate Docker image builds, generate SBOM (Software Bill of Materials) reports, convert them to Markdown, and attach the signed SBOM evidence to the Docker image in JFrog Artifactory using GitLab CI/CD and JFrog CLI.
+This repository provides a working example of a GitLab CI/CD pipeline that builds a Docker image, generates a Software Bill of Materials (SBOM) using GitLab's native Container Scanning, and attaches the SBOM as signed, verifiable evidence to the image in JFrog Artifactory.
+
+This workflow is a key DevSecOps practice, creating a transparent and auditable inventory of all components within your container images, directly from your CI/CD process.
 
 ## Overview
 
 The pipeline builds a Docker image, generates a CycloneDX SBOM, converts the SBOM JSON to Markdown, pushes the image to Artifactory, and attaches the signed SBOM as evidence to the image package. This enables traceability and compliance for your container images in CI/CD.
+
+### Key Features
+
+* **Automated Docker Build**: Builds a Docker image and pushes it to Artifactory.  
+* **Native SBOM Generation**: Leverages GitLab's built-in Container Scanning feature to automatically generate a CycloneDX SBOM.  
+* **Optional Markdown Summary**: Includes a helper script to generate a human-readable Markdown report from the SBOM data.  
+* **Signed Evidence Attachment**: Attaches the JSON SBOM as a predicate to the corresponding Docker image in Artifactory, cryptographically signing it for integrity.
 
 ## Prerequisites
 
@@ -53,6 +62,7 @@ Trigger the pipeline in GitLab CI/CD. The pipeline will:
 ## Key Commands Used
 
 - **Build Docker Image:**
+  The pipeline first builds a Docker image from the specified Dockerfile and then pushes it to your Artifactory instance using the JFrog CLI.
   ```bash
   docker build -f ./examples/gitlab-sbom/Dockerfile -t $DOCKER_IMAGE_NAME_WITH_TAG ./examples/gitlab-sbom
   ```
@@ -61,10 +71,12 @@ Trigger the pipeline in GitLab CI/CD. The pipeline will:
   jf rt docker-push $DOCKER_IMAGE_NAME_WITH_TAG $REPO_NAME --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
   ```
 - **Convert SBOM JSON to Markdown:**
+  This stage leverages GitLab's native security capabilities. By including the `Container-Scanning.gitlab-ci.yml` template in your main pipeline configuration, GitLab automatically runs a scanner against the image built in the previous stage. A key output of this scan is a `gl-container-scanning-report.json` artifact, which contains a detailed SBOM in CycloneDX format.
   ```bash
   python3 json-to-md.py
   ```
 - **Attach Evidence:**
+  The jf evd create command attaches the original SBOM report to the Docker image package in Artifactory. This creates a permanent, tamper-proof link between your image and its complete list of software components.
   ```bash
   jf evd create --package-name="${PACKAGE_NAME}" --package-version="${PACKAGE_VERSION}" --package-repo-name="${REPO_NAME}" --key="${PRIVATE_KEY}" --key-alias="${PRIVATE_KEY_ALIAS}" --predicate="${PREDICATE_FILE}" --predicate-type="${PREDICATE_TYPE}" --markdown="${MARKDOWN_FILE}"
   ```
