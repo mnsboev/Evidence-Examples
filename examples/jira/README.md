@@ -179,6 +179,61 @@ For detailed technical information about the JIRA helper application, including:
 
 Please refer to the [helper directory README](helper/README.md).
 
+
+### **How It Works: A Step-by-Step Breakdown** 
+
+#### **1\. Build Helper Application**
+
+The workflow begins by setting up Go and compiling the custom `helper/main.go` application. This binary contains all the logic for parsing git commits and interacting with the Jira API.
+
+```
+# In directory examples/jira/helper
+chmod +x build.sh
+./build.sh
+```
+
+---
+
+#### **2\. Build and Publish Docker Image**
+
+Next, a sample Docker image is built and pushed to Artifactory. The workflow captures rich build information, including git context and environment variables, using `jf rt build-publish`.
+
+```
+# In directory examples/jira
+docker build . --file Dockerfile --tag $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
+docker push $REGISTRY_DOMAIN/$REPO_NAME/$IMAGE_NAME:$VERSION
+# ... jf commands to publish build-info
+```
+
+---
+
+#### **3\. Extract and Validate Jira Data**
+
+This is the core logic step. The compiled Go helper is executed, using the `start_commit` provided at runtime to define a range of git commits to scan. The application extracts all matching Jira IDs, queries the Jira API for their details, and generates the `transformed_jira_data.json` and optional Markdown report.
+
+```
+# In directory examples/jira/helper
+./main "${{ github.event.inputs.start_commit }}"
+```
+
+---
+
+#### **4\. Attach Signed Evidence to Build**
+
+This final step uses `jf evd create --build-name` to attach the Jira ticket summary to the **build information** that was published in step 2\. This creates a verifiable link between the CI process itself and the project management tickets that authorized the code changes within it.
+
+```
+jf evd create \
+    --build-name $BUILD_NAME \
+    --build-number ${{ github.run_number }} \
+    --key "${{ secrets.PRIVATE_KEY }}" \
+    --key-alias "${{ vars.EVIDENCE_KEY_ALIAS }}" \
+    --predicate ./examples/jira/helper/transformed_jira_data.json \
+    --predicate-type http://atlassian.com/jira/issues/v1 \
+    ${{ env.ATTACH_OPTIONAL_CUSTOM_MARKDOWN_TO_EVIDENCE == 'true' && '--markdown "examples/jira/helper/transformed_jira_data.md"' || '' }}
+```
+
+
 ## **References**
 
 * [Jira REST API Documentation](https://developer.atlassian.com/cloud/jira/platform/rest/v3/)
